@@ -149,11 +149,11 @@ module ActsAsTenant
           unless a == reflect_on_association(tenant) || polymorphic_foreign_keys.include?(a.foreign_key)
             association_class =  a.options[:class_name].nil? ? a.name.to_s.classify.constantize : a.options[:class_name].constantize
             validates_each a.foreign_key.to_sym do |record, attr, value|
-              primary_key = if association_class.respond_to?(:primary_key)
-                              association_class.primary_key
-                            else
-                              a.primary_key
-                            end.to_sym
+              primary_key = if a.respond_to?(:active_record_primary_key)
+                a.active_record_primary_key
+              else
+                a.primary_key
+              end.to_sym
               record.errors.add attr, "association is invalid [ActsAsTenant]" unless value.nil? || association_class.where(primary_key => value).any?
             end
           end
@@ -212,13 +212,13 @@ module ActsAsTenant
               if instance.new_record?
                 unless self.class.where(fkey.to_sym => [nil, instance[fkey]],
                                         field.to_sym => instance[field]).empty?
-                  errors.add(field, 'has already been taken') 
+                  errors.add(field, 'has already been taken')
                 end
               else
                 unless self.class.where(fkey.to_sym => [nil, instance[fkey]],
                                         field.to_sym => instance[field])
                                  .where.not(:id => instance.id).empty?
-                  errors.add(field, 'has already been taken') 
+                  errors.add(field, 'has already been taken')
                 end
 
               end
